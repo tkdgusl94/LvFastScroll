@@ -1,0 +1,3 @@
+include ':lvFastScroll'
+include ':app'
+rootProject.name = "LvFastScroll"
