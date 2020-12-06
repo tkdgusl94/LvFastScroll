@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="LvFastScroll">
+        <attr name="lv_trackColor" format="color" />
+        <attr name="lv_handleColor" format="color" />
+        <attr name="lv_bubbleColor" format="color" />
+        <attr name="lv_bubbleTextColor" format="color" />
+    </declare-styleable>
+</resources>

@@ -7,7 +7,7 @@
         android:layout_height="match_parent">
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/fs_track"
+            android:id="@+id/cl_track"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:paddingHorizontal="8dp"
@@ -16,7 +16,7 @@
             tools:visibility="visible">
 
             <ImageView
-                android:id="@+id/fs_track_line"
+                android:id="@+id/iv_track"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:paddingVertical="8dp"
@@ -26,7 +26,7 @@
                 tools:ignore="ContentDescription" />
 
             <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/fs_handle"
+                android:id="@+id/cl_handle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:paddingVertical="8dp"
@@ -34,6 +34,7 @@
                 app:layout_constraintEnd_toEndOf="parent">
 
                 <ImageView
+                    android:id="@+id/iv_handle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:src="@drawable/fs_handle"
@@ -45,30 +46,26 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/fs_bubble"
+            android:id="@+id/cl_bubble"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:paddingVertical="8dp"
             android:visibility="gone"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/fs_track"
+            app:layout_constraintEnd_toStartOf="@id/cl_track"
             tools:visibility="visible">
 
             <TextView
                 android:id="@+id/tv_bubble"
-                style="@style/TextAppearance.AppCompat.Subhead"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="@drawable/fs_bubble"
+                android:textColor="#ffffff"
+                android:gravity="center"
+                style="@style/TextAppearance.AppCompat.Subhead"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                android:layout_marginEnd="16dp"
-                android:paddingStart="8dp"
-                android:paddingTop="4dp"
-                android:paddingEnd="8dp"
-                android:gravity="center"
-                android:paddingBottom="4dp"
                 tools:text="A" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>

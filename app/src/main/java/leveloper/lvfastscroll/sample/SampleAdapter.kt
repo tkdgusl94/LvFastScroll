@@ -8,11 +8,7 @@ import kotlinx.android.synthetic.main.item_view.view.*
 
 class SampleAdapter: RecyclerView.Adapter<SampleAdapter.SampleViewHolder>() {
 
-    private var items: List<String> = emptyList()
-
-    fun setData(items: List<String>) {
-        this.items = items
-    }
+    var items: List<String> = emptyList()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SampleViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_view, parent, false)
