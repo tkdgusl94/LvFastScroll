@@ -150,7 +150,7 @@ class LvFastScroll @JvmOverloads constructor(
 
         binding.clBubble.y = getValueInRange(
             positionY - (binding.clHandle.height),
-            viewHeight - binding.clBubble.height
+            viewHeight - binding.clBubble.height - binding.ivHandle.height / 2
         )
     }
 
