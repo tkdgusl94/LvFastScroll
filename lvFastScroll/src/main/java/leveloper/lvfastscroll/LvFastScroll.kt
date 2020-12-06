@@ -12,7 +12,12 @@ import android.view.View
 import android.widget.LinearLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.Disposable
+import io.reactivex.schedulers.Schedulers
+import io.reactivex.subjects.PublishSubject
 import leveloper.lvfastscroll.databinding.LayoutScrollerBinding
+import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
 class LvFastScroll @JvmOverloads constructor(
@@ -34,15 +39,11 @@ class LvFastScroll @JvmOverloads constructor(
     private val scrollListener = ScrollListener()
     private var viewHeight: Int = 0
 
-//    private var hideDisposable: Disposable? = null
+    private val hideScrollerSubject = PublishSubject.create<Boolean>()
+    private var hideDisposable: Disposable? = null
 
     init {
-        init()
-    }
-
-    private fun init() {
         orientation = HORIZONTAL
-        clipChildren = false
         binding = LayoutScrollerBinding.inflate(LayoutInflater.from(context), this, true)
         setupHideScrollerSubscribe()
     }
@@ -51,7 +52,8 @@ class LvFastScroll @JvmOverloads constructor(
         return when (event.action) {
             MotionEvent.ACTION_DOWN -> {
                 if (isTouchScroller(event)) {
-                    binding.viewScroller.isSelected = true
+                    binding.fsHandle.isSelected = true
+                    showScroller(event)
                     showBubble()
                     true
                 } else {
@@ -59,9 +61,9 @@ class LvFastScroll @JvmOverloads constructor(
                 }
             }
             MotionEvent.ACTION_MOVE -> {
-                if (binding.viewScroller.isSelected) {
+                if (binding.fsHandle.isSelected) {
                     showScroller(event)
-//                    hideScrollerSubject.onNext(true)
+                    hideScrollerSubject.onNext(true)
                     true
                 } else {
                     false
@@ -69,7 +71,7 @@ class LvFastScroll @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                binding.viewScroller.isSelected = false
+                binding.fsHandle.isSelected = false
                 hideBubble()
                 return false
             }
@@ -79,7 +81,7 @@ class LvFastScroll @JvmOverloads constructor(
 
     private fun isTouchScroller(event: MotionEvent): Boolean {
         val scrollerRect = Rect().apply {
-            binding.viewScroller.getHitRect(this)
+            binding.fsTrack.getHitRect(this)
         }
         return scrollerRect.contains(event.x.toInt(), event.y.toInt())
     }
@@ -91,40 +93,37 @@ class LvFastScroll @JvmOverloads constructor(
 
     private fun setupHideScrollerSubscribe() {
         /* 1초 후에 반환 */
-//        hideDisposable = hideScrollerSubject.debounce(HIDE_DELAY_SECOND, TimeUnit.SECONDS)
-//            .subscribeOn(Schedulers.io())
-//            .observeOn(AndroidSchedulers.mainThread())
-//            .filter { !binding.viewScroller.isSelected }
-//            .subscribe({
-//                println("!!!!! $it")
-//                hideAnimateHandle()
-//            }, { throwable -> throwable.printStackTrace() })
+        hideDisposable = hideScrollerSubject.debounce(HIDE_DELAY_SECOND, TimeUnit.SECONDS)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .filter { !binding.fsHandle.isSelected }
+            .subscribe({
+                hideAnimateHandle()
+            }, { throwable -> throwable.printStackTrace() })
     }
-
 
     private fun showScroller(event: MotionEvent) {
         setScrollerPosition(event.y)
         setRecyclerViewPosition(event.y)
     }
 
-
     private fun setScrollerPosition(positionY: Float) {
-        binding.viewScroller.y = getValueInRange(
-            positionY - (binding.viewScroller.height / 2),
-            viewHeight - binding.viewScroller.height
+        binding.fsHandle.y = getValueInRange(
+            positionY - (binding.fsHandle.height / 2),
+            viewHeight - binding.fsHandle.height
         )
 
-        binding.viewBubble.y = getValueInRange(
-            positionY - (binding.viewBubble.height / 2),
-            viewHeight - binding.viewBubble.height
+        binding.fsBubble.y = getValueInRange(
+            positionY - (binding.fsHandle.height),
+            viewHeight - binding.fsBubble.height
         )
     }
 
     private fun setRecyclerViewPosition(positionY: Float) {
         recyclerView?.adapter?.run {
             val proportion: Float = when {
-                binding.viewScroller.y == 0f -> 0f
-                binding.viewScroller.y + binding.viewScroller.height >= viewHeight - SCROLLER_MAX_POSITION_GAP -> 1f
+                binding.fsHandle.y == 0f -> 0f
+                binding.fsHandle.y + binding.fsHandle.height >= viewHeight - SCROLLER_MAX_POSITION_GAP -> 1f
                 else -> positionY / viewHeight
             }
             val targetPos: Float = getValueInRange(proportion * itemCount, itemCount - 1)
@@ -134,21 +133,17 @@ class LvFastScroll @JvmOverloads constructor(
                 0
             )
         }
-
     }
 
     private fun getValueInRange(value: Float, max: Int): Float = value.coerceIn(0f, max.toFloat())
 
     private fun showAnimateHandle() {
-        if (binding.viewScroller.visibility == View.VISIBLE) {
-            return
-        }
-        binding.viewScroller.visibility = View.VISIBLE
+        binding.fsTrack.visibility = View.VISIBLE
 
         ObjectAnimator.ofFloat(
-            binding.viewScroller,
+            binding.fsTrack,
             TRANSLATION_X,
-            binding.viewScroller.width.toFloat(),
+            binding.fsHandle.width.toFloat(),
             0f
         ).apply {
             duration = ANIMATION_TIME_HANDLE
@@ -157,26 +152,25 @@ class LvFastScroll @JvmOverloads constructor(
 
 
     private fun hideAnimateHandle() {
-        if (binding.viewScroller.visibility == View.GONE) {
+        if (binding.fsTrack.visibility == View.GONE) {
             return
         }
 
         ObjectAnimator.ofFloat(
-            binding.viewScroller,
+            binding.fsTrack,
             TRANSLATION_X,
             0f,
-            binding.viewScroller.width.toFloat()
+            binding.fsHandle.width.toFloat()
         ).apply {
-
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     super.onAnimationEnd(animation)
-                    binding.viewScroller.visibility = View.GONE
+                    binding.fsTrack.visibility = View.GONE
                 }
 
                 override fun onAnimationCancel(animation: Animator) {
                     super.onAnimationCancel(animation)
-                    binding.viewScroller.visibility = View.GONE
+                    binding.fsTrack.visibility = View.GONE
                 }
             })
 
@@ -185,14 +179,14 @@ class LvFastScroll @JvmOverloads constructor(
     }
 
     private fun showBubble() {
-        if (binding.viewBubble.visibility == View.VISIBLE) {
+        if (binding.fsBubble.visibility == View.VISIBLE) {
             return
         }
-        binding.viewBubble.visibility = View.VISIBLE
+        binding.fsBubble.visibility = View.VISIBLE
         ObjectAnimator.ofFloat(
-            binding.viewBubble,
+            binding.fsBubble,
             TRANSLATION_X,
-            binding.viewBubble.width.toFloat(),
+            binding.fsBubble.width.toFloat(),
             0f
         ).apply {
             duration = ANIMATION_TIME_BUBBLE
@@ -200,26 +194,26 @@ class LvFastScroll @JvmOverloads constructor(
     }
 
     private fun hideBubble() {
-        if (binding.viewBubble.visibility == View.GONE) {
+        if (binding.fsBubble.visibility == View.GONE) {
             return
         }
         ObjectAnimator.ofFloat(
-            binding.viewBubble,
+            binding.fsBubble,
             TRANSLATION_X,
             0f,
-            binding.viewBubble.width.toFloat()
+            binding.fsBubble.width.toFloat()
         ).apply {
 
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     super.onAnimationEnd(animation)
-                    binding.viewBubble.visibility = View.GONE
+                    binding.fsBubble.visibility = View.GONE
 
                 }
 
                 override fun onAnimationCancel(animation: Animator) {
                     super.onAnimationCancel(animation)
-                    binding.viewBubble.visibility = View.GONE
+                    binding.fsBubble.visibility = View.GONE
                 }
             })
             duration = ANIMATION_TIME_BUBBLE
@@ -228,30 +222,27 @@ class LvFastScroll @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         recyclerView?.removeOnScrollListener(scrollListener)
-//        hideDisposable?.dispose()
+        hideDisposable?.dispose()
         super.onDetachedFromWindow()
     }
 
     private inner class ScrollListener : RecyclerView.OnScrollListener() {
         override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
-            if (dy == 0) {
-                return
-            }
+            if (dy == 0) return
 
             (rv.layoutManager as? LinearLayoutManager)?.run {
-                if (binding.viewScroller.visibility == View.GONE) {
+                if (binding.fsTrack.visibility == View.GONE) {
                     showAnimateHandle()
                 }
 
                 updateBubbleAndHandlePosition()
-//                hideScrollerSubject.onNext(true)
+                hideScrollerSubject.onNext(true)
             }
         }
     }
 
-
     private fun updateBubbleAndHandlePosition() {
-        if (binding.viewScroller.isSelected) {
+        if (binding.fsHandle.isSelected) {
             return
         }
         recyclerView?.let {
